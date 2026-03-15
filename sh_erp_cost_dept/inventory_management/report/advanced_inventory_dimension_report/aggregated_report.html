@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{{ report_title }}</title>
+<style>
+  /* ------------------------------------------------------------------ */
+  /*  Print-friendly minimalist layout                                    */
+  /* ------------------------------------------------------------------ */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 11px;
+    color: #1a1a1a;
+    background: #fff;
+    padding: 20px;
+  }
+
+  /* Header */
+  .report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+  }
+  .report-header .company-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #2563eb;
+  }
+  .report-header .report-meta {
+    text-align: right;
+    font-size: 10px;
+    color: #555;
+  }
+  .report-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  /* Applied filters summary */
+  .filter-summary {
+    background: #f0f4ff;
+    border: 1px solid #c7d7f9;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+    font-size: 10px;
+    color: #374151;
+  }
+  .filter-summary span { margin-right: 16px; }
+
+  /* Group header rows */
+  .group-header {
+    background: #2563eb;
+    color: #fff;
+    font-weight: 600;
+    padding: 6px 10px;
+    margin-top: 14px;
+    margin-bottom: 4px;
+    border-radius: 3px;
+    font-size: 11px;
+  }
+
+  /* Main data table */
+  table.inventory-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  table.inventory-table thead tr {
+    background: #1e40af;
+    color: #fff;
+  }
+  table.inventory-table thead th {
+    padding: 7px 8px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    border: 1px solid #1e3a8a;
+  }
+  table.inventory-table tbody tr:nth-child(even) {
+    background: #f8faff;
+  }
+  table.inventory-table tbody tr:hover {
+    background: #eff6ff;
+  }
+  table.inventory-table tbody td {
+    padding: 6px 8px;
+    border: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+
+  /* Totals row */
+  .totals-row td {
+    font-weight: 700;
+    background: #dbeafe !important;
+    border-top: 2px solid #2563eb;
+  }
+
+  /* Negative qty */
+  .qty-negative { color: #dc2626; font-weight: 600; }
+
+  /* Footer */
+  .report-footer {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 8px;
+    margin-top: 10px;
+    font-size: 9px;
+    color: #9ca3af;
+    text-align: center;
+  }
+
+  /* Print overrides */
+  @media print {
+    body { padding: 10mm; }
+    .no-print { display: none; }
+    table.inventory-table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ------------------------------------------------------------------ -->
+<!--  Report header                                                       -->
+<!-- ------------------------------------------------------------------ -->
+<div class="report-header">
+  <div>
+    <div class="company-name">{{ company }}</div>
+    <div class="report-title">{{ report_title }}</div>
+    <div style="font-size:10px;color:#555">تقرير المخزون المجمع / Aggregated Inventory Report</div>
+  </div>
+  <div class="report-meta">
+    {% if filters.as_of_date %}
+    <div><strong>As of Date:</strong> {{ filters.as_of_date }}</div>
+    {% elif filters.from_date and filters.to_date %}
+    <div><strong>Period:</strong> {{ filters.from_date }} → {{ filters.to_date }}</div>
+    {% endif %}
+    <div><strong>Generated:</strong> {{ frappe.utils.now_datetime().strftime('%Y-%m-%d %H:%M') }}</div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------------ -->
+<!--  Applied filters summary                                             -->
+<!-- ------------------------------------------------------------------ -->
+<div class="filter-summary">
+  <strong>Filters Applied:</strong>
+  {% if filters.brands %}<span>Brand: {{ filters.brands }}</span>{% endif %}
+  {% if filters.warehouses %}<span>Warehouse: {{ filters.warehouses }}</span>{% endif %}
+  {% if filters.batches %}<span>Batch: {{ filters.batches }}</span>{% endif %}
+  {% if filters.items %}<span>Item: {{ filters.items }}</span>{% endif %}
+  {% if show_warehouse %}<span>✓ Warehouse Dimension</span>{% endif %}
+  {% if show_batch %}<span>✓ Batch Dimension</span>{% endif %}
+  {% if show_brand %}<span>✓ Brand Dimension</span>{% endif %}
+</div>
+
+<!-- ------------------------------------------------------------------ -->
+<!--  Data table                                                          -->
+<!--  Group by Brand if show_brand is active and brands filter is set    -->
+<!-- ------------------------------------------------------------------ -->
+
+{% set ns = namespace(current_group=None, total_qty=0, total_value=0, grand_qty=0, grand_value=0) %}
+
+{% if show_brand %}
+  {# Group rows by brand #}
+  {% set brand_groups = {} %}
+  {% for row in data %}
+    {% set brand_key = row.brand or "— No Brand —" %}
+    {% if brand_key not in brand_groups %}
+      {% set _ = brand_groups.update({brand_key: []}) %}
+    {% endif %}
+    {% set _ = brand_groups[brand_key].append(row) %}
+  {% endfor %}
+
+  {% for brand_name, rows in brand_groups.items() %}
+  <div class="group-header">
+    Brand: {{ brand_name }}
+  </div>
+  <table class="inventory-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Item Code</th>
+        <th>Item Name</th>
+        {% if show_item_group %}<th>Item Group</th>{% endif %}
+        {% if show_warehouse %}<th>Warehouse</th>{% endif %}
+        {% if show_batch %}<th>Batch</th>{% endif %}
+        <th>UOM</th>
+        <th class="text-right">Qty On Hand</th>
+        <th class="text-right">Valuation Rate</th>
+        <th class="text-right">Stock Value</th>
+        <th class="text-right">Age (Days)</th>
+        <th>First Entry</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set ns.total_qty = 0 %}
+      {% set ns.total_value = 0 %}
+      {% for row in rows %}
+      {% set ns.total_qty = ns.total_qty + (row.qty_on_hand or 0) %}
+      {% set ns.total_value = ns.total_value + (row.stock_value or 0) %}
+      {% set ns.grand_qty = ns.grand_qty + (row.qty_on_hand or 0) %}
+      {% set ns.grand_value = ns.grand_value + (row.stock_value or 0) %}
+      <tr>
+        <td class="text-center">{{ loop.index }}</td>
+        <td>{{ row.item_code }}</td>
+        <td>{{ row.item_name }}</td>
+        {% if show_item_group %}<td>{{ row.item_group or '' }}</td>{% endif %}
+        {% if show_warehouse %}<td>{{ row.warehouse or '' }}</td>{% endif %}
+        {% if show_batch %}<td>{{ row.batch_no or '' }}</td>{% endif %}
+        <td>{{ row.uom or '' }}</td>
+        <td class="text-right {% if (row.qty_on_hand or 0) < 0 %}qty-negative{% endif %}">
+          {{ "%.3f" | format(row.qty_on_hand or 0) }}
+        </td>
+        <td class="text-right">{{ "%.2f" | format(row.valuation_rate or 0) }}</td>
+        <td class="text-right">{{ "%.2f" | format(row.stock_value or 0) }}</td>
+        <td class="text-center">{{ row.age_days or 0 }}</td>
+        <td>{{ row.first_entry_date or '' }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="totals-row">
+        <td colspan="{% if show_item_group %}3{% else %}2{% endif %}" style="text-align:right">
+          Subtotal ({{ brand_name }}):
+        </td>
+        <td></td>
+        {% if show_warehouse %}<td></td>{% endif %}
+        {% if show_batch %}<td></td>{% endif %}
+        <td></td>
+        <td class="text-right">{{ "%.3f" | format(ns.total_qty) }}</td>
+        <td></td>
+        <td class="text-right">{{ "%.2f" | format(ns.total_value) }}</td>
+        <td></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  {% endfor %}
+
+{% else %}
+  {# Flat table without brand grouping #}
+  <table class="inventory-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Item Code</th>
+        <th>Item Name</th>
+        {% if show_item_group %}<th>Item Group</th>{% endif %}
+        {% if show_warehouse %}<th>Warehouse</th>{% endif %}
+        {% if show_batch %}<th>Batch</th>{% endif %}
+        <th>UOM</th>
+        <th class="text-right">Qty On Hand</th>
+        <th class="text-right">Valuation Rate</th>
+        <th class="text-right">Stock Value</th>
+        <th class="text-right">Age (Days)</th>
+        <th>First Entry</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in data %}
+      {% set ns.grand_qty = ns.grand_qty + (row.qty_on_hand or 0) %}
+      {% set ns.grand_value = ns.grand_value + (row.stock_value or 0) %}
+      <tr>
+        <td class="text-center">{{ loop.index }}</td>
+        <td>{{ row.item_code }}</td>
+        <td>{{ row.item_name }}</td>
+        {% if show_item_group %}<td>{{ row.item_group or '' }}</td>{% endif %}
+        {% if show_warehouse %}<td>{{ row.warehouse or '' }}</td>{% endif %}
+        {% if show_batch %}<td>{{ row.batch_no or '' }}</td>{% endif %}
+        <td>{{ row.uom or '' }}</td>
+        <td class="text-right {% if (row.qty_on_hand or 0) < 0 %}qty-negative{% endif %}">
+          {{ "%.3f" | format(row.qty_on_hand or 0) }}
+        </td>
+        <td class="text-right">{{ "%.2f" | format(row.valuation_rate or 0) }}</td>
+        <td class="text-right">{{ "%.2f" | format(row.stock_value or 0) }}</td>
+        <td class="text-center">{{ row.age_days or 0 }}</td>
+        <td>{{ row.first_entry_date or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+
+<!-- ------------------------------------------------------------------ -->
+<!--  Grand totals                                                        -->
+<!-- ------------------------------------------------------------------ -->
+<table class="inventory-table" style="width:40%;margin-left:auto;margin-top:10px">
+  <tbody>
+    <tr class="totals-row">
+      <td><strong>Grand Total Qty</strong></td>
+      <td class="text-right"><strong>{{ "%.3f" | format(ns.grand_qty) }}</strong></td>
+    </tr>
+    <tr class="totals-row">
+      <td><strong>Grand Total Value</strong></td>
+      <td class="text-right"><strong>{{ "%.2f" | format(ns.grand_value) }}</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ------------------------------------------------------------------ -->
+<!--  Footer                                                              -->
+<!-- ------------------------------------------------------------------ -->
+<div class="report-footer">
+  {{ company }} &nbsp;|&nbsp; {{ report_title }} &nbsp;|&nbsp;
+  Printed: {{ frappe.utils.now_datetime().strftime('%Y-%m-%d %H:%M') }}
+</div>
+
+</body>
+</html>

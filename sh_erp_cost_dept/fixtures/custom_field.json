@@ -1,0 +1,28 @@
+[
+ {
+  "creation": "2024-01-01 00:00:00.000000",
+  "dt": "Stock Ledger Entry",
+  "fieldname": "custom_item_brand",
+  "fieldtype": "Link",
+  "insert_after": "batch_no",
+  "label": "Item Brand",
+  "modified": "2024-01-01 00:00:00.000000",
+  "module": "Inventory Management",
+  "name": "Stock Ledger Entry-custom_item_brand",
+  "options": "Brand",
+  "owner": "Administrator"
+ },
+ {
+  "creation": "2024-01-01 00:00:00.000000",
+  "dt": "GL Entry",
+  "fieldname": "custom_item_brand",
+  "fieldtype": "Link",
+  "insert_after": "cost_center",
+  "label": "Item Brand",
+  "modified": "2024-01-01 00:00:00.000000",
+  "module": "Inventory Management",
+  "name": "GL Entry-custom_item_brand",
+  "options": "Brand",
+  "owner": "Administrator"
+ }
+]

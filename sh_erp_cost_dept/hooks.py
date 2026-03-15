@@ -21,6 +21,19 @@ app_license = "mit"
 # 	}
 # ]
 
+# Fixtures
+# --------
+# Export custom fields for SLE and GL Entry so they are applied on install
+fixtures = [
+	{
+		"dt": "Custom Field",
+		"filters": [
+			["dt", "in", ["Stock Ledger Entry", "GL Entry"]],
+			["fieldname", "=", "custom_item_brand"],
+		],
+	}
+]
+
 # Includes in <head>
 # ------------------
 
@@ -246,4 +259,5 @@ app_license = "mit"
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
+
 
