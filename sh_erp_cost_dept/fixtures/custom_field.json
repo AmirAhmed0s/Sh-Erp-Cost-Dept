@@ -1,6 +1,7 @@
 [
  {
   "creation": "2024-01-01 00:00:00.000000",
+  "doctype": "Custom Field",
   "dt": "Stock Ledger Entry",
   "fieldname": "custom_item_brand",
   "fieldtype": "Link",
@@ -14,6 +15,7 @@
  },
  {
   "creation": "2024-01-01 00:00:00.000000",
+  "doctype": "Custom Field",
   "dt": "GL Entry",
   "fieldname": "custom_item_brand",
   "fieldtype": "Link",
@@ -27,6 +29,7 @@
  },
  {
   "creation": "2024-01-01 00:00:00.000000",
+  "doctype": "Custom Field",
   "dt": "Task",
   "fieldname": "custom_assigned_to_users",
   "fieldtype": "Small Text",
@@ -40,6 +43,7 @@
  },
  {
   "creation": "2024-01-01 00:00:00.000000",
+  "doctype": "Custom Field",
   "dt": "Sales Order Item",
   "fieldname": "custom_item_brand",
   "fieldtype": "Link",
@@ -53,6 +57,7 @@
  },
  {
   "creation": "2024-01-01 00:00:00.000000",
+  "doctype": "Custom Field",
   "dt": "Purchase Order Item",
   "fieldname": "custom_item_brand",
   "fieldtype": "Link",
@@ -66,6 +71,7 @@
  },
  {
   "creation": "2024-01-01 00:00:00.000000",
+  "doctype": "Custom Field",
   "dt": "Delivery Note Item",
   "fieldname": "custom_item_brand",
   "fieldtype": "Link",
@@ -79,6 +85,7 @@
  },
  {
   "creation": "2024-01-01 00:00:00.000000",
+  "doctype": "Custom Field",
   "dt": "Stock Entry Detail",
   "fieldname": "custom_item_brand",
   "fieldtype": "Link",
@@ -92,6 +99,7 @@
  },
  {
   "creation": "2024-01-01 00:00:00.000000",
+  "doctype": "Custom Field",
   "dt": "BOM Item",
   "fieldname": "custom_item_brand",
   "fieldtype": "Link",
@@ -105,6 +113,7 @@
  },
  {
   "creation": "2024-01-01 00:00:00.000000",
+  "doctype": "Custom Field",
   "dt": "Material Request Item",
   "fieldname": "custom_item_brand",
   "fieldtype": "Link",
@@ -118,6 +127,7 @@
  },
  {
   "creation": "2024-01-01 00:00:00.000000",
+  "doctype": "Custom Field",
   "dt": "Work Order Item",
   "fieldname": "custom_item_brand",
   "fieldtype": "Link",

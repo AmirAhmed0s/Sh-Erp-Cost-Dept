@@ -128,8 +128,8 @@ def validate_todo_assignment(doc, method=None):
 	if frappe.flags.get("ignore_assignment_control"):
 		return
 
-	# Only validate newly-created open assignments
-	if doc.status != "Open":
+	# Only validate newly-created open assignments or when the assignee changes
+	if doc.status != "Open" or (not doc.is_new() and not doc.has_value_changed("allocated_to")):
 		return
 
 	owner = doc.owner or frappe.session.user
