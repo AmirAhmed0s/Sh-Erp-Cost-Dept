@@ -23,8 +23,9 @@ app_license = "mit"
 
 # Fixtures
 # --------
-# Export custom fields for SLE, GL Entry and Task so they are applied on install
+# Export custom fields and print formats so they are applied on install
 fixtures = [
+	# custom_item_brand on ledger/accounting entries
 	{
 		"dt": "Custom Field",
 		"filters": [
@@ -32,6 +33,7 @@ fixtures = [
 			["fieldname", "=", "custom_item_brand"],
 		],
 	},
+	# custom_assigned_to_users on Task
 	{
 		"dt": "Custom Field",
 		"filters": [
@@ -39,13 +41,41 @@ fixtures = [
 			["fieldname", "=", "custom_assigned_to_users"],
 		],
 	},
+	# custom_item_brand on all transaction item child tables
+	{
+		"dt": "Custom Field",
+		"filters": [
+			[
+				"dt",
+				"in",
+				[
+					"Sales Order Item",
+					"Purchase Order Item",
+					"Delivery Note Item",
+					"Stock Entry Detail",
+					"BOM Item",
+					"Material Request Item",
+					"Work Order Item",
+				],
+			],
+			["fieldname", "=", "custom_item_brand"],
+		],
+	},
+	# Unified print format
+	{
+		"dt": "Print Format",
+		"filters": [["name", "=", "Bayt Al Shawarma - Sales Invoice"]],
+	},
 ]
 
 # Includes in <head>
 # ------------------
 
 # include js, css files in header of desk.html
-app_include_js = "/assets/sh_erp_cost_dept/js/assignment_control.js"
+app_include_js = [
+	"/assets/sh_erp_cost_dept/js/assignment_control.js",
+	"/assets/sh_erp_cost_dept/js/item_brand_uom_control.js",
+]
 # app_include_css = "/assets/sh_erp_cost_dept/css/sh_erp_cost_dept.css"
 
 # include js, css files in header of web template
@@ -163,7 +193,30 @@ doc_events = {
 		"after_insert": "sh_erp_cost_dept.task_management.api.update_task_assigned_users",
 		"on_update": "sh_erp_cost_dept.task_management.api.update_task_assigned_users",
 		"on_trash": "sh_erp_cost_dept.task_management.api.update_task_assigned_users",
-	}
+	},
+	# ── Item Brand & UOM validation ──────────────────────────────────────────
+	"Sales Order": {
+		"validate": "sh_erp_cost_dept.item_brand_uom.validation.validate_brand_uom",
+	},
+	"Purchase Order": {
+		"validate": "sh_erp_cost_dept.item_brand_uom.validation.validate_brand_uom",
+	},
+	"Delivery Note": {
+		"validate": "sh_erp_cost_dept.item_brand_uom.validation.validate_brand_uom",
+	},
+	"Stock Entry": {
+		"validate": "sh_erp_cost_dept.item_brand_uom.validation.validate_brand_uom",
+	},
+	"BOM": {
+		"validate": "sh_erp_cost_dept.item_brand_uom.validation.validate_brand_uom",
+	},
+	"Material Request": {
+		"validate": "sh_erp_cost_dept.item_brand_uom.validation.validate_brand_uom",
+	},
+	# Work Order includes cross-doc BOM→WO brand consistency check
+	"Work Order": {
+		"validate": "sh_erp_cost_dept.item_brand_uom.validation.validate_work_order_brand",
+	},
 }
 
 # Scheduled Tasks
