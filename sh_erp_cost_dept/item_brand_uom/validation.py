@@ -106,22 +106,35 @@ def validate_brand_uom(doc, method=None):
 
 	for idx, row in enumerate(rows, start=1):
 		item_code = getattr(row, "item_code", None)
-		brand = getattr(row, "custom_item_brand", None)
-
-		if not item_code or not brand:
+		if not item_code:
 			continue
 
-		allowed_brands = _get_allowed_brands(item_code)
+		brand = getattr(row, "custom_item_brand", None)
+		if brand:
+			allowed_brands = _get_allowed_brands(item_code)
 
-		# Only enforce if the item actually defines brands
-		if allowed_brands and brand not in allowed_brands:
-			frappe.throw(
-				_(
-					"Row {0}: Brand <b>{1}</b> is not allowed for item <b>{2}</b>. "
-					"Please select a valid brand."
-				).format(idx, brand, item_code),
-				title=_("Invalid Item Brand"),
-			)
+			# Only enforce if the item actually defines brands
+			if allowed_brands and brand not in allowed_brands:
+				frappe.throw(
+					_(
+						"Row {0}: Brand <b>{1}</b> is not allowed for item <b>{2}</b>. "
+						"Please select a valid brand."
+					).format(idx, brand, item_code),
+					title=_("Invalid Item Brand"),
+				)
+
+		# UOM validation — only enforce if the item defines UOMs
+		uom = getattr(row, "uom", None) or getattr(row, "stock_uom", None)
+		if uom:
+			allowed_uoms = _get_allowed_uoms(item_code)
+			if allowed_uoms and uom not in allowed_uoms:
+				frappe.throw(
+					_(
+						"Row {0}: UOM <b>{1}</b> is not allowed for item <b>{2}</b>. "
+						"Please select a valid UOM."
+					).format(idx, uom, item_code),
+					title=_("Invalid UOM"),
+				)
 
 
 def validate_work_order_brand(doc, method=None):

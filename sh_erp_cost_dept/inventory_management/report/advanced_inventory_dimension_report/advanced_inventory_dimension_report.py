@@ -164,7 +164,6 @@ def _get_data(filters):
 		HAVING
 			SUM(sle.actual_qty) <> 0
 		ORDER BY
-			sle.item_code,
 			{group_by_fields}
 	"""
 
@@ -185,7 +184,6 @@ def _build_select_fields(filters):
 	fields = [
 		"sle.item_code",
 		"i.item_name",
-		"i.item_group",
 		"i.stock_uom AS uom",
 		"SUM(sle.actual_qty) AS qty_on_hand",
 		# Quantity-weighted average valuation rate:
@@ -199,6 +197,8 @@ def _build_select_fields(filters):
 		"MIN(sle.posting_date) AS first_entry_date",
 	]
 
+	if filters.get("show_item_group") == "Yes":
+		fields.append("i.item_group")
 	if filters.get("show_warehouse") == "Yes":
 		fields.append("sle.warehouse")
 	if filters.get("show_batch") == "Yes":
@@ -210,8 +210,12 @@ def _build_select_fields(filters):
 
 
 def _build_group_by(filters):
-	group_fields = ["sle.item_code"]
+	# i.item_name is functionally dependent on sle.item_code in ERPNext,
+	# but must be listed explicitly to satisfy ONLY_FULL_GROUP_BY mode.
+	group_fields = ["sle.item_code", "i.item_name"]
 
+	if filters.get("show_item_group") == "Yes":
+		group_fields.append("i.item_group")
 	if filters.get("show_warehouse") == "Yes":
 		group_fields.append("sle.warehouse")
 	if filters.get("show_batch") == "Yes":
