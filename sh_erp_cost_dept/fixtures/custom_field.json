@@ -24,5 +24,18 @@
   "name": "GL Entry-custom_item_brand",
   "options": "Brand",
   "owner": "Administrator"
+ },
+ {
+  "creation": "2024-01-01 00:00:00.000000",
+  "dt": "Task",
+  "fieldname": "custom_assigned_to_users",
+  "fieldtype": "Small Text",
+  "insert_after": "description",
+  "label": "Assigned To Users",
+  "modified": "2024-01-01 00:00:00.000000",
+  "module": "Task Management",
+  "name": "Task-custom_assigned_to_users",
+  "owner": "Administrator",
+  "read_only": 1
  }
 ]
