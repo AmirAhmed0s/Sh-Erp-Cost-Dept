@@ -1,4 +1,3 @@
 Sh Erp Cost Dept
 Inventory Management
 Task Management
-Manufacturing
