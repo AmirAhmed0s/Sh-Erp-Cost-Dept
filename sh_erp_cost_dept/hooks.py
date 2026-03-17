@@ -23,7 +23,7 @@ app_license = "mit"
 
 # Fixtures
 # --------
-# Export custom fields for SLE and GL Entry so they are applied on install
+# Export custom fields for SLE, GL Entry and Task so they are applied on install
 fixtures = [
 	{
 		"dt": "Custom Field",
@@ -31,15 +31,22 @@ fixtures = [
 			["dt", "in", ["Stock Ledger Entry", "GL Entry"]],
 			["fieldname", "=", "custom_item_brand"],
 		],
-	}
+	},
+	{
+		"dt": "Custom Field",
+		"filters": [
+			["dt", "=", "Task"],
+			["fieldname", "=", "custom_assigned_to_users"],
+		],
+	},
 ]
 
 # Includes in <head>
 # ------------------
 
 # include js, css files in header of desk.html
+app_include_js = "/assets/sh_erp_cost_dept/js/assignment_control.js"
 # app_include_css = "/assets/sh_erp_cost_dept/css/sh_erp_cost_dept.css"
-# app_include_js = "/assets/sh_erp_cost_dept/js/sh_erp_cost_dept.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/sh_erp_cost_dept/css/sh_erp_cost_dept.css"
@@ -150,13 +157,14 @@ fixtures = [
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"ToDo": {
+		"validate": "sh_erp_cost_dept.task_management.api.validate_todo_assignment",
+		"after_insert": "sh_erp_cost_dept.task_management.api.update_task_assigned_users",
+		"on_update": "sh_erp_cost_dept.task_management.api.update_task_assigned_users",
+		"on_trash": "sh_erp_cost_dept.task_management.api.update_task_assigned_users",
+	}
+}
 
 # Scheduled Tasks
 # ---------------

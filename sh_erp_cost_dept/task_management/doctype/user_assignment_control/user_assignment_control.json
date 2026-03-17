@@ -1,0 +1,116 @@
+{
+ "actions": [],
+ "autoname": "field:manager",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "manager",
+  "manager_full_name",
+  "col_break_header",
+  "is_active",
+  "apply_scope",
+  "allowed_users_section",
+  "allowed_users",
+  "allowed_doctypes_section",
+  "allowed_doctypes"
+ ],
+ "fields": [
+  {
+   "fieldname": "manager",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Manager / Department Head",
+   "options": "User",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fetch_from": "manager.full_name",
+   "fieldname": "manager_full_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Full Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
+   "default": "Full System",
+   "fieldname": "apply_scope",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Apply Scope",
+   "options": "Full System\nCustom Selection",
+   "reqd": 1
+  },
+  {
+   "fieldname": "allowed_users_section",
+   "fieldtype": "Section Break",
+   "label": "Allowed Users"
+  },
+  {
+   "fieldname": "allowed_users",
+   "fieldtype": "Table",
+   "label": "Allowed Users",
+   "options": "Assignment Allowed User"
+  },
+  {
+   "depends_on": "eval:doc.apply_scope=='Custom Selection'",
+   "fieldname": "allowed_doctypes_section",
+   "fieldtype": "Section Break",
+   "label": "Allowed DocTypes"
+  },
+  {
+   "depends_on": "eval:doc.apply_scope=='Custom Selection'",
+   "fieldname": "allowed_doctypes",
+   "fieldtype": "Table",
+   "label": "Allowed DocTypes",
+   "options": "Assignment Allowed DocType"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Task Management",
+ "name": "User Assignment Control",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "manager_full_name",
+ "track_changes": 1
+}

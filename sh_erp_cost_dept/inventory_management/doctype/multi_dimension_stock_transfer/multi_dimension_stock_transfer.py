@@ -334,6 +334,7 @@ class MultiDimensionStockTransfer(Document):
 	#  Whitelisted API methods                                             #
 	# ------------------------------------------------------------------ #
 
+	@staticmethod
 	@frappe.whitelist()
 	def get_item_brands(item_code):
 		"""Return list of brands linked to an item via custom_brands child table."""
@@ -346,6 +347,7 @@ class MultiDimensionStockTransfer(Document):
 		)
 		return brands
 
+	@staticmethod
 	@frappe.whitelist()
 	def get_item_batches(item_code, warehouse=None):
 		"""Return available batches for an item (optionally filtered by warehouse stock)."""
