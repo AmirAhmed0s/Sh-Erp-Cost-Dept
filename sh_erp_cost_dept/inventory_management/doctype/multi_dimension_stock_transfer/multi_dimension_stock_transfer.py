@@ -63,11 +63,28 @@ class MultiDimensionStockTransfer(Document):
 			brand = row.get(brand_field)
 			if not brand:
 				continue
-			valid = frappe.db.exists(
-				"Item Brand",
-				{"parent": row.item_code, "parentfield": "custom_brands", "brand": brand},
-			)
-			if not valid:
+			# Read custom_brands directly from the item document — same approach
+			# as item_brand_uom/validation.py _get_allowed_brands().
+			# frappe.db.exists() on child doctypes does not reliably filter by
+			# parent + field combination, so we use get_cached_doc instead.
+			try:
+				item_doc = frappe.get_cached_doc("Item", row.item_code)
+				allowed_brands = [
+					getattr(d, "brand", None)
+					for d in (getattr(item_doc, "custom_brands", None) or [])
+					if getattr(d, "brand", None)
+				]
+			except frappe.DoesNotExistError:
+				allowed_brands = []
+			except Exception:
+				frappe.log_error(frappe.get_traceback(), "MultiDimensionStockTransfer: brand validation error")
+				allowed_brands = []
+
+			# If the item has no brands configured, skip validation (permissive default)
+			if not allowed_brands:
+				continue
+
+			if brand not in allowed_brands:
 				frappe.throw(
 					_(
 						"Row {0}: Brand '{1}' is not linked to Item '{2}'.<br>"
@@ -464,3 +481,70 @@ def get_batches_for_item_warehouse(doctype, txt, searchfield, start, page_len, f
 				"page_len": cint(page_len),
 			},
 		)
+
+
+@frappe.whitelist()
+def get_brand_valuation_rate(item_code, warehouse, brand=None, batch_no=None):
+	"""
+	Returns the quantity-weighted average valuation rate from SLE
+	for a specific Item + Warehouse + Brand + Batch combination.
+	Falls back to item's standard valuation_rate if no SLE found.
+	"""
+	result = frappe.db.sql(
+		"""
+		SELECT
+			COALESCE(
+				SUM(actual_qty * valuation_rate) / NULLIF(SUM(actual_qty), 0),
+				0
+			) AS avg_rate
+		FROM `tabStock Ledger Entry`
+		WHERE item_code = %(item_code)s
+		  AND warehouse = %(warehouse)s
+		  AND is_cancelled = 0
+		  AND actual_qty > 0
+		  {brand_filter}
+		  {batch_filter}
+		""".format(
+			brand_filter="AND custom_item_brand = %(brand)s" if brand else "",
+			batch_filter="AND batch_no = %(batch_no)s" if batch_no else "",
+		),
+		{
+			"item_code": item_code,
+			"warehouse": warehouse,
+			"brand": brand,
+			"batch_no": batch_no,
+		},
+		as_dict=True,
+	)
+
+	avg_rate = result[0].get("avg_rate", 0) if result else 0
+	if not avg_rate:
+		avg_rate = frappe.db.get_value("Item", item_code, "valuation_rate") or 0
+	return flt(avg_rate)
+
+
+@frappe.whitelist()
+def get_available_qty(item_code, warehouse, batch_no=None, brand=None):
+	"""Returns current actual_qty from SLE for the given Item + Warehouse + Batch + Brand combination."""
+	result = frappe.db.sql(
+		"""
+		SELECT SUM(actual_qty) AS qty
+		FROM `tabStock Ledger Entry`
+		WHERE item_code = %(item_code)s
+		  AND warehouse = %(warehouse)s
+		  AND is_cancelled = 0
+		  {batch_filter}
+		  {brand_filter}
+		""".format(
+			batch_filter="AND batch_no = %(batch_no)s" if batch_no else "",
+			brand_filter="AND custom_item_brand = %(brand)s" if brand else "",
+		),
+		{
+			"item_code": item_code,
+			"warehouse": warehouse,
+			"batch_no": batch_no,
+			"brand": brand,
+		},
+		as_dict=True,
+	)
+	return flt(result[0].get("qty", 0) if result else 0)

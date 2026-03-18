@@ -42,15 +42,57 @@ frappe.ui.form.on("Multi Dimension Transfer Item", {
 		refresh_field("to_batch", cdn, "transfer_items");
 	},
 
-	// When from_warehouse changes, refresh from_batch query
+	// When from_warehouse changes, refresh from_batch query and stock warning
 	from_warehouse(frm, cdt, cdn) {
 		refresh_field("from_batch", cdn, "transfer_items");
+		_check_stock_warning(frm, cdt, cdn);
+	},
+
+	// Auto-fill valuation_rate and UOM when from_brand changes
+	from_brand(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+
+		// Auto-fill valuation rate from SLE (brand-level weighted average)
+		if (row.item_code && row.from_warehouse) {
+			frappe.call({
+				method: "sh_erp_cost_dept.inventory_management.doctype.multi_dimension_stock_transfer.multi_dimension_stock_transfer.get_brand_valuation_rate",
+				args: {
+					item_code: row.item_code,
+					warehouse: row.from_warehouse,
+					brand: row.from_brand,
+					batch_no: row.from_batch,
+				},
+				callback(r) {
+					if (r.message) {
+						frappe.model.set_value(cdt, cdn, "valuation_rate", r.message);
+					}
+				},
+			});
+		}
+
+		// Auto-fill UOM from unit_definition_by_brand
+		if (row.item_code && row.from_brand) {
+			frappe.db.get_doc("Item", row.item_code).then((item_doc) => {
+				const brand_row = (item_doc.custom_brands || []).find(
+					(b) => b.brand === row.from_brand
+				);
+				if (brand_row && brand_row.unit_definition_by_brand) {
+					frappe.model.set_value(
+						cdt,
+						cdn,
+						"uom",
+						brand_row.unit_definition_by_brand
+					);
+				}
+			});
+		}
 	},
 
 	// Recalculate amount when qty or valuation_rate changes
 	qty(frm, cdt, cdn) {
 		_calculate_row_amount(frm, cdt, cdn);
 		frm.trigger("calculate_totals");
+		_check_stock_warning(frm, cdt, cdn);
 	},
 
 	valuation_rate(frm, cdt, cdn) {
@@ -112,18 +154,22 @@ function _brand_query(item_code) {
 /**
  * Returns a set_query that limits Batch options to batches
  * belonging to the item and (optionally) available in the warehouse.
+ * Uses array-format filters which Frappe's Link field always respects.
  */
 function _batch_query(item_code, warehouse) {
 	if (!item_code) {
-		return {filters: [["Batch", "item", "=", ""]]};
+		return {filters: [["Batch", "name", "=", ""]]};
 	}
-	const filters = {item: item_code};
-	if (warehouse) filters["warehouse"] = warehouse;
+	if (warehouse) {
+		// Use server-side query to filter by positive stock in warehouse
+		return {
+			query: "sh_erp_cost_dept.inventory_management.doctype.multi_dimension_stock_transfer.multi_dimension_stock_transfer.get_batches_for_item_warehouse",
+			filters: {item: item_code, warehouse: warehouse},
+		};
+	}
+	// No warehouse — use array-format filter so Frappe honours it without a query fn
 	return {
-		filters: filters,
-		query: warehouse
-			? "sh_erp_cost_dept.inventory_management.doctype.multi_dimension_stock_transfer.multi_dimension_stock_transfer.get_batches_for_item_warehouse"
-			: null,
+		filters: [["Batch", "item", "=", item_code]],
 	};
 }
 
@@ -131,6 +177,47 @@ function _calculate_row_amount(frm, cdt, cdn) {
 	const row = locals[cdt][cdn];
 	const amount = flt(row.qty) * flt(row.valuation_rate);
 	frappe.model.set_value(cdt, cdn, "amount", amount);
+}
+
+/**
+ * Shows a non-blocking orange warning if requested qty exceeds available stock.
+ * Only runs in Draft (docstatus === 0) to avoid noise on submitted docs.
+ */
+function _check_stock_warning(frm, cdt, cdn) {
+	const row = locals[cdt][cdn];
+	if (!row.item_code || !row.from_warehouse || !flt(row.qty)) return;
+	if (frm.doc.docstatus !== 0) return;
+
+	frappe.call({
+		method: "sh_erp_cost_dept.inventory_management.doctype.multi_dimension_stock_transfer.multi_dimension_stock_transfer.get_available_qty",
+		args: {
+			item_code: row.item_code,
+			warehouse: row.from_warehouse,
+			batch_no: row.from_batch || null,
+			brand: row.from_brand || null,
+		},
+		callback(r) {
+			const available = flt((r && r.message) || 0);
+			if (flt(row.qty) > available) {
+				frappe.show_alert(
+					{
+						message: __(
+							"Row {0}: Available stock for {1} in {2} is {3} — requested {4}.",
+							[
+								row.idx,
+								row.item_code,
+								row.from_warehouse,
+								available,
+								row.qty,
+							]
+						),
+						indicator: "orange",
+					},
+					7
+				);
+			}
+		},
+	});
 }
 
 frappe.ui.form.on("Multi Dimension Stock Transfer", {
@@ -145,3 +232,4 @@ frappe.ui.form.on("Multi Dimension Stock Transfer", {
 		frm.set_value("total_amount", total_amount);
 	},
 });
+
