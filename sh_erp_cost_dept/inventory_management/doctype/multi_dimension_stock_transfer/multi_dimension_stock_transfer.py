@@ -340,12 +340,17 @@ class MultiDimensionStockTransfer(Document):
 		"""Return list of brands linked to an item via custom_brands child table."""
 		if not item_code:
 			return []
-		brands = frappe.db.get_all(
-			"Item Brand",
-			filters={"parent": item_code, "parentfield": "custom_brands"},
-			fields=["brand", "unit_definition_by_brand"],
-		)
-		return brands
+		try:
+			item_doc = frappe.get_cached_doc("Item", item_code)
+			custom_brands = getattr(item_doc, "custom_brands", None) or []
+			result = []
+			for d in custom_brands:
+				brand = getattr(d, "brand", None)
+				if brand:
+					result.append({"brand": brand, "unit_definition_by_brand": getattr(d, "unit_definition_by_brand", None)})
+			return result
+		except frappe.DoesNotExistError:
+			return []
 
 	@staticmethod
 	@frappe.whitelist()
@@ -389,23 +394,22 @@ def get_brands_for_item(doctype, txt, searchfield, start, page_len, filters):
 	if not item_code:
 		return []
 
-	return frappe.db.sql(
-		"""
-		SELECT ib.brand
-		FROM `tabItem Brand` ib
-		WHERE ib.parent = %(item_code)s
-		  AND ib.parentfield = 'custom_brands'
-		  AND ib.brand LIKE %(txt)s
-		ORDER BY ib.brand
-		LIMIT %(start)s, %(page_len)s
-		""",
-		{
-			"item_code": item_code,
-			"txt": f"%{txt}%",
-			"start": cint(start),
-			"page_len": cint(page_len),
-		},
-	)
+	try:
+		item_doc = frappe.get_cached_doc("Item", item_code)
+		custom_brands = getattr(item_doc, "custom_brands", None) or []
+	except frappe.DoesNotExistError:
+		return []
+
+	txt_lower = (txt or "").lower()
+	matched = []
+	for d in custom_brands:
+		brand = getattr(d, "brand", None)
+		if brand and txt_lower in brand.lower():
+			matched.append((brand,))
+	matched.sort(key=lambda r: r[0])
+	start = cint(start)
+	page_len = cint(page_len)
+	return matched[start : start + page_len] if page_len else matched[start:]
 
 
 @frappe.whitelist()
