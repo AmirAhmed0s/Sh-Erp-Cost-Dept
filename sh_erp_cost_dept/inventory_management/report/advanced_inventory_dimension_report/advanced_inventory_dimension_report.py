@@ -135,6 +135,18 @@ def _get_columns(filters):
 			"fieldtype": "Date",
 			"width": 120,
 		},
+		{
+			"fieldname": "last_movement_date",
+			"label": _("Last Movement Date"),
+			"fieldtype": "Date",
+			"width": 140,
+		},
+		{
+			"fieldname": "last_movement_days",
+			"label": _("Days Since Last Movement"),
+			"fieldtype": "Int",
+			"width": 160,
+		},
 	]
 
 	return columns
@@ -176,6 +188,10 @@ def _get_data(filters):
 			row["age_days"] = (as_of_date - getdate(row["first_entry_date"])).days
 		else:
 			row["age_days"] = 0
+		if row.get("last_movement_date"):
+			row["last_movement_days"] = (as_of_date - getdate(row["last_movement_date"])).days
+		else:
+			row["last_movement_days"] = 0
 
 	return rows
 
@@ -195,6 +211,7 @@ def _build_select_fields(filters):
 		"  / NULLIF(SUM(CASE WHEN sle.actual_qty > 0 THEN sle.actual_qty ELSE 0 END), 0)"
 		", 0) AS valuation_rate",
 		"MIN(sle.posting_date) AS first_entry_date",
+		"MAX(sle.posting_date) AS last_movement_date",
 	]
 
 	if filters.get("show_item_group") == "Yes":
@@ -210,9 +227,9 @@ def _build_select_fields(filters):
 
 
 def _build_group_by(filters):
-	# i.item_name is functionally dependent on sle.item_code in ERPNext,
+	# i.item_name and i.stock_uom are functionally dependent on sle.item_code in ERPNext,
 	# but must be listed explicitly to satisfy ONLY_FULL_GROUP_BY mode.
-	group_fields = ["sle.item_code", "i.item_name"]
+	group_fields = ["sle.item_code", "i.item_name", "i.stock_uom"]
 
 	if filters.get("show_item_group") == "Yes":
 		group_fields.append("i.item_group")

@@ -116,12 +116,17 @@ frappe.query_reports["Advanced Inventory Dimension Report"] = {
 	],
 
 	// ----------------------------------------------------------------
-	// Formatter — highlight negative qty in red
+	// Formatter — highlight negative qty in red; color-code age_days
 	// ----------------------------------------------------------------
 	formatter: function (value, row, column, data, default_formatter) {
 		value = default_formatter(value, row, column, data);
 		if (column.fieldname === "qty_on_hand" && flt(data["qty_on_hand"]) < 0) {
-			value = `<span style="color:red">${value}</span>`;
+			value = `<span style="color:red;font-weight:bold">${value}</span>`;
+		}
+		if (column.fieldname === "age_days") {
+			const days = data["age_days"] || 0;
+			const color = days < 30 ? "#28a745" : days < 90 ? "#ffc107" : "#dc3545";
+			value = `<span style="color:${color};font-weight:600">${value}</span>`;
 		}
 		return value;
 	},

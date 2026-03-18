@@ -5,5 +5,5 @@ import frappe
 from frappe.model.document import Document
 
 
-class AssignmentAllowedDoctype(Document):
+class AssignmentAllowedDocType(Document):
 	pass
