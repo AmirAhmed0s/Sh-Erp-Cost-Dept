@@ -11,17 +11,16 @@
  "is_standard": "Yes",
  "modified": "2024-01-01 00:00:00.000000",
  "modified_by": "Administrator",
- "module": "Manufacturing",
- "name": "Material Consumption Report",
+ "module": "Sh Manufacturing",
+ "name": "Manufacturing Cost Analysis",
  "owner": "Administrator",
  "prepared_report": 0,
  "ref_doctype": "Work Order",
- "report_name": "Material Consumption Report",
+ "report_name": "Manufacturing Cost Analysis",
  "report_type": "Script Report",
  "roles": [
   {"role": "Manufacturing Manager"},
   {"role": "Manufacturing User"},
-  {"role": "Stock Manager"},
-  {"role": "Stock User"}
+  {"role": "Accounts Manager"}
  ]
 }
